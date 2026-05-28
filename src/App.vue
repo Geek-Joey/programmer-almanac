@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import AlmanacHeader from './components/AlmanacHeader.vue'
 import AdvicePanel from './components/AdvicePanel.vue'
 import LuckyPanel from './components/LuckyPanel.vue'
@@ -62,37 +62,51 @@ function getLunarDate(date) {
   }
 }
 
-const today = new Date()
-const rng = getRNG(today)
+const today = ref(new Date())
 
-const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`
-const weekDay = `周${WEEK_DAYS[today.getDay()]}`
+const rng = computed(() => getRNG(today.value))
 
-const lunarInfo = getLunarDate(today)
+const dateStr = computed(() => `${today.value.getFullYear()}年${today.value.getMonth() + 1}月${today.value.getDate()}日`)
+const weekDay = computed(() => `周${WEEK_DAYS[today.value.getDay()]}`)
+
+const lunarInfo = computed(() => getLunarDate(today.value))
 const lunarDate = computed(() =>
-  `农历${lunarInfo.ganzhi}年（${lunarInfo.shengxiao}年）${lunarInfo.month}月${lunarInfo.day}`
+  `农历${lunarInfo.value.ganzhi}年（${lunarInfo.value.shengxiao}年）${lunarInfo.value.month}月${lunarInfo.value.day}`
 )
 
-const goodAdvices = pickNByWeight(goodAdvice, 3, rng)
-const badAdvices = pickNByWeight(badAdvice, 2, rng)
+const goodAdvices = computed(() => pickNByWeight(goodAdvice, 3, rng.value))
+const badAdvices = computed(() => pickNByWeight(badAdvice, 2, rng.value))
 
-const luckyLang = pickOne(luckyLanguages, rng)
-const luckyColor = pickOne(luckyColors, rng)
-const luckyDir = pickOne(luckyDirections, rng)
-const luckyNum = Math.floor(rng() * (luckyNumberRange.max - luckyNumberRange.min + 1)) + luckyNumberRange.min
+const luckyLang = computed(() => pickOne(luckyLanguages, rng.value))
+const luckyColor = computed(() => pickOne(luckyColors, rng.value))
+const luckyDir = computed(() => pickOne(luckyDirections, rng.value))
+const luckyNum = computed(() => Math.floor(rng.value() * (luckyNumberRange.max - luckyNumberRange.min + 1)) + luckyNumberRange.min)
 
-const todayQuote = pickN(quotes, 1, rng)[0]
+const todayQuote = computed(() => pickN(quotes, 1, rng.value)[0])
 
-const fortuneIdx = Math.floor(rng() * fortunes.length)
-const todayFortune = fortunes[fortuneIdx]
+const fortuneIdx = computed(() => Math.floor(rng.value() * fortunes.length))
+const todayFortune = computed(() => fortunes[fortuneIdx.value])
 
 const fortuneLevel = computed(() => {
-  const level = todayFortune?.level || '中'
+  const level = todayFortune.value?.level || '中'
   if (level.includes('上上')) return 5
   if (level.includes('上')) return 4
   if (level.includes('中')) return 3
   return 2
 })
+
+let timer
+onMounted(() => {
+  timer = setInterval(() => {
+    const now = new Date()
+    if (now.getDate() !== today.value.getDate() ||
+        now.getMonth() !== today.value.getMonth() ||
+        now.getFullYear() !== today.value.getFullYear()) {
+      today.value = now
+    }
+  }, 60000)
+})
+onUnmounted(() => clearInterval(timer))
 </script>
 
 <template>
